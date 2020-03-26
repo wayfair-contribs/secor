@@ -6,7 +6,7 @@
 
     <groupId>com.pinterest</groupId>
     <artifactId>secor</artifactId>
-    <version>0.28.1-SNAPSHOT</version>
+    <version>0.28.2-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>secor</name>
     <description>Kafka to s3/gs/swift logs exporter</description>
@@ -160,6 +160,16 @@
             <groupId>net.java.dev.jets3t</groupId>
             <artifactId>jets3t</artifactId>
             <version>0.9.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>4.1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-jmx</artifactId>
+            <version>4.1.5</version>
         </dependency>
         <dependency>
             <groupId>log4j</groupId>
@@ -723,11 +733,6 @@
                         </exclusion>
                     </exclusions>
                 </dependency>
-                <dependency>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>ostrich_2.10</artifactId>
-                    <version>9.18.0</version>
-                </dependency>
             </dependencies>
         </profile>
         <profile>
@@ -760,11 +765,6 @@
                         </exclusion>
                     </exclusions>
                 </dependency>
-                <dependency>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>ostrich_2.10</artifactId>
-                    <version>9.18.0</version>
-                 </dependency>
             </dependencies>
         </profile>
         <profile>
@@ -799,11 +799,6 @@
                     <artifactId>kafka_2.11</artifactId>
                     <version>1.0.0</version>
                 </dependency>
-                <dependency>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>ostrich_2.11</artifactId>
-                    <version>9.27.0</version>
-              </dependency>
             </dependencies>
         </profile>
         <profile>
@@ -844,11 +839,6 @@
                     <groupId>org.apache.kafka</groupId>
                     <artifactId>kafka-clients</artifactId>
                     <version>2.3.1</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>ostrich_2.11</artifactId>
-                    <version>9.27.0</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -893,11 +883,6 @@
                         </exclusion>
                     </exclusions>
                 </dependency>
-                <dependency>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>ostrich_2.10</artifactId>
-                    <version>9.18.0</version>
-                </dependency>
             </dependencies>
         </profile>
         <profile>
@@ -937,11 +922,6 @@
                             <artifactId>slf4j-simple</artifactId>
                         </exclusion>
                     </exclusions>
-                </dependency>
-                <dependency>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>ostrich_2.10</artifactId>
-                    <version>9.18.0</version>
                 </dependency>
             </dependencies>
         </profile>

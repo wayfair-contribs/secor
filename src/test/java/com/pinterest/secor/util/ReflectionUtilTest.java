@@ -20,8 +20,6 @@ package com.pinterest.secor.util;
 
 import com.pinterest.secor.common.LogFilePath;
 import com.pinterest.secor.common.SecorConfig;
-import com.pinterest.secor.monitoring.MetricCollector;
-import com.pinterest.secor.monitoring.OstrichMetricCollector;
 import com.pinterest.secor.parser.MessageParser;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -75,25 +73,5 @@ public class ReflectionUtilTest {
         // assignable to MessageParser
         ReflectionUtil.createFileWriter("java.lang.Object",
                 mLogFilePath, null, mSecorConfig);
-    }
-
-    @Test
-    public void testCreateMetricsCollector() throws Exception {
-        MetricCollector metricCollector = ReflectionUtil.createMetricCollector("com.pinterest.secor.monitoring.OstrichMetricCollector");
-
-        Assert.assertNotNull(metricCollector);
-        Assert.assertThat(metricCollector, CoreMatchers.instanceOf(OstrichMetricCollector.class));
-    }
-
-    @Test(expected = ClassNotFoundException.class)
-    public void testCreateMetricsCollectorClassNotFound() throws Exception {
-        ReflectionUtil.createMetricCollector("com.example.foo");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testCreateMetricsCollectorNotAssignable() throws Exception {
-        // Try to create a message parser using an existent and available class, but one not
-        // assignable to MessageParser
-        ReflectionUtil.createMetricCollector("java.lang.Object");
     }
 }

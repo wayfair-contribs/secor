@@ -393,10 +393,6 @@ public class SecorConfig {
         return getString("secor.file.extension");
     }
 
-    public int getOstrichPort() {
-        return getInt("ostrich.port");
-    }
-
     public String getCloudService() {
         return getString("cloud.service");
     }
@@ -753,10 +749,6 @@ public class SecorConfig {
         return mProperties.getString("secor.thrift.protocol.class");
     }
 
-    public String getMetricsCollectorClass() {
-        return getString("secor.monitoring.metrics.collector.class");
-    }
-    
     /**
      * This method is used for fetching all the properties which start with the given prefix.
      * It returns a Map of all those key-val.

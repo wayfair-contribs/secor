@@ -18,7 +18,8 @@
  */
 package com.pinterest.secor.main;
 
-import com.pinterest.secor.common.OstrichAdminService;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.jmx.JmxReporter;
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.consumer.Consumer;
 import com.pinterest.secor.tools.LogFileDeleter;
@@ -45,6 +46,7 @@ import java.util.LinkedList;
  */
 public class ConsumerMain {
     private static final Logger LOG = LoggerFactory.getLogger(ConsumerMain.class);
+    private static final MetricRegistry metricRegistry = new MetricRegistry();
 
     public static void main(String[] args) {
         if (args.length != 0) {
@@ -54,9 +56,10 @@ public class ConsumerMain {
         }
         try {
             SecorConfig config = SecorConfig.load();
-            OstrichAdminService ostrichService = new OstrichAdminService(config.getOstrichPort());
-            ostrichService.start();
             FileUtil.configure(config);
+
+            final JmxReporter reporter = JmxReporter.forRegistry(metricRegistry).build();
+            reporter.start();
 
             LogFileDeleter logFileDeleter = new LogFileDeleter(config);
             logFileDeleter.deleteOldLogs();
@@ -65,7 +68,7 @@ public class ConsumerMain {
             LOG.info("starting {} consumer threads", config.getConsumerThreads());
             LinkedList<Consumer> consumers = new LinkedList<Consumer>();
             for (int i = 0; i < config.getConsumerThreads(); ++i) {
-                Consumer consumer = new Consumer(config);
+                Consumer consumer = new Consumer(config, metricRegistry);
                 consumers.add(consumer);
                 consumer.start();
             }

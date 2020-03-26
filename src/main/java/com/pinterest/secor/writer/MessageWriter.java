@@ -30,7 +30,6 @@ import com.pinterest.secor.message.Message;
 import com.pinterest.secor.message.ParsedMessage;
 import com.pinterest.secor.util.CompressionUtil;
 import com.pinterest.secor.util.IdUtil;
-import com.pinterest.secor.util.StatsUtil;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,7 +80,6 @@ public class MessageWriter {
         long lastSeenOffset = mOffsetTracker.getLastSeenOffset(topicPartition);
         //this validation logic is for duplicates removing as no rebalancing callbacks is incompatible with LegacyKafkaMessageIterator
         if (isLegacyConsumer && message.getOffset() != lastSeenOffset + 1) {
-            StatsUtil.incr("secor.consumer_rebalance_count." + topicPartition.getTopic());
             // There was a rebalancing event since we read the last message.
             LOG.info("offset of message {} does not follow sequentially the last seen offset {}. " +
                             "Deleting files in topic {} partition {}",

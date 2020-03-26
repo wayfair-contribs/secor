@@ -18,6 +18,8 @@
  */
 package com.pinterest.secor.uploader;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.google.common.base.Joiner;
 import com.pinterest.secor.common.DeterministicUploadPolicyTracker;
 import com.pinterest.secor.common.FileRegistry;
@@ -30,7 +32,6 @@ import com.pinterest.secor.common.ZookeeperConnector;
 import com.pinterest.secor.io.FileReader;
 import com.pinterest.secor.io.FileWriter;
 import com.pinterest.secor.io.KeyValue;
-import com.pinterest.secor.monitoring.MetricCollector;
 import com.pinterest.secor.reader.MessageReader;
 import com.pinterest.secor.util.CompressionUtil;
 import com.pinterest.secor.util.IdUtil;
@@ -55,7 +56,7 @@ public class Uploader {
     private static final Logger LOG = LoggerFactory.getLogger(Uploader.class);
 
     protected SecorConfig mConfig;
-    protected MetricCollector mMetricCollector;
+    protected MetricRegistry mMetricRegistry;
     protected OffsetTracker mOffsetTracker;
     protected FileRegistry mFileRegistry;
     protected ZookeeperConnector mZookeeperConnector;
@@ -74,19 +75,19 @@ public class Uploader {
      * @param offsetTracker Tracker of the current offset of topics partitions
      * @param fileRegistry Registry of log files on a per-topic and per-partition basis
      * @param uploadManager Manager of the physical upload of log files to the remote repository
-     * @param metricCollector component that ingest metrics into monitoring system
+     * @param metricRegistry component that ingest metrics into monitoring system
      */
     public void init(SecorConfig config, OffsetTracker offsetTracker, FileRegistry fileRegistry,
-                     UploadManager uploadManager, MessageReader messageReader, MetricCollector metricCollector,
+                     UploadManager uploadManager, MessageReader messageReader, MetricRegistry metricRegistry,
                      DeterministicUploadPolicyTracker deterministicUploadPolicyTracker) {
         init(config, offsetTracker, fileRegistry, uploadManager, messageReader,
-                new ZookeeperConnector(config), metricCollector, deterministicUploadPolicyTracker);
+                new ZookeeperConnector(config), metricRegistry, deterministicUploadPolicyTracker);
     }
 
     // For testing use only.
     public void init(SecorConfig config, OffsetTracker offsetTracker, FileRegistry fileRegistry,
                      UploadManager uploadManager, MessageReader messageReader,
-                     ZookeeperConnector zookeeperConnector, MetricCollector metricCollector,
+                     ZookeeperConnector zookeeperConnector, MetricRegistry metricRegistry,
                      DeterministicUploadPolicyTracker deterministicUploadPolicyTracker) {
         mConfig = config;
         mOffsetTracker = offsetTracker;
@@ -95,7 +96,7 @@ public class Uploader {
         mMessageReader = messageReader;
         mZookeeperConnector = zookeeperConnector;
         mTopicFilter = mConfig.getKafkaTopicUploadAtMinuteMarkFilter();
-        mMetricCollector = metricCollector;
+        mMetricRegistry = metricRegistry;
         mDeterministicUploadPolicyTracker = deterministicUploadPolicyTracker;
         if (mConfig.getOffsetsStorage().equals(SecorConstants.KAFKA_OFFSETS_STORAGE_KAFKA)) {
             isOffsetsStorageKafka = true;
@@ -122,6 +123,8 @@ public class Uploader {
                     topicPartition);
             if (zookeeperCommittedOffsetCount == committedOffsetCount) {
                 LOG.info("uploading topic {} partition {}", topicPartition.getTopic(), topicPartition.getPartition());
+
+                Timer.Context context = mMetricRegistry.timer(MetricRegistry.name(this.getClass(), topicPartition.getTopic(), "uploadTime")).time();
                 // Deleting writers closes their streams flushing all pending data to the disk.
                 mFileRegistry.deleteWriters(topicPartition);
                 Collection<LogFilePath> paths = mFileRegistry.getPaths(topicPartition);
@@ -133,6 +136,8 @@ public class Uploader {
                     uploadHandle.get();
                 }
                 mFileRegistry.deleteTopicPartition(topicPartition);
+                context.stop();
+
                 if (mDeterministicUploadPolicyTracker != null) {
                     mDeterministicUploadPolicyTracker.reset(topicPartition);
                 }
@@ -141,7 +146,7 @@ public class Uploader {
                 if (isOffsetsStorageKafka) {
                     mMessageReader.commit(topicPartition, lastSeenOffset + 1);
                 }
-                mMetricCollector.increment("uploader.file_uploads.count", paths.size(), topicPartition.getTopic());
+                mMetricRegistry.counter(MetricRegistry.name(this.getClass(), topicPartition.getTopic(), "uploadCount")).inc(paths.size());
             } else {
                 LOG.warn("Zookeeper committed offset didn't match for topic {} partition {}: {} vs {}",
                          topicPartition.getTopic(), topicPartition.getTopic(), zookeeperCommittedOffsetCount,

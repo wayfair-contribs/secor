@@ -67,14 +67,4 @@ public class SecorConfigTest {
         assertEquals(UnitTestMessage2.class.getName(), messageClassPerTopic.get("mytopic2"));
     }
 
-    @Test
-    public void shouldReadMetricCollectorConfiguration() throws ConfigurationException {
-
-        URL configFile = Thread.currentThread().getContextClassLoader().getResource("secor.test.monitoring.properties");
-        PropertiesConfiguration properties = new PropertiesConfiguration(configFile);
-
-        SecorConfig secorConfig = new SecorConfig(properties);
-
-        assertEquals("com.pinterest.secor.monitoring.OstrichMetricCollector", secorConfig.getMetricsCollectorClass());
-    }
 }

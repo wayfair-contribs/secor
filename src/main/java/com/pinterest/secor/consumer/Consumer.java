@@ -18,13 +18,16 @@
  */
 package com.pinterest.secor.consumer;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.pinterest.secor.common.DeterministicUploadPolicyTracker;
 import com.pinterest.secor.common.FileRegistry;
 import com.pinterest.secor.common.OffsetTracker;
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.message.Message;
 import com.pinterest.secor.message.ParsedMessage;
-import com.pinterest.secor.monitoring.MetricCollector;
 import com.pinterest.secor.parser.MessageParser;
 import com.pinterest.secor.reader.KafkaMessageIterator;
 import com.pinterest.secor.reader.KafkaMessageIteratorFactory;
@@ -56,7 +59,7 @@ public class Consumer extends Thread {
     private static final Logger LOG = LoggerFactory.getLogger(Consumer.class);
 
     protected SecorConfig mConfig;
-    protected MetricCollector mMetricCollector;
+    protected MetricRegistry metricRegistry;
 
     protected MessageReader mMessageReader;
     protected MessageWriter mMessageWriter;
@@ -76,9 +79,10 @@ public class Consumer extends Thread {
     private volatile boolean mShuttingDown = false;
     private static volatile boolean mCallingSystemExit = false;
 
-    public Consumer(SecorConfig config) {
+    public Consumer(SecorConfig config, MetricRegistry metricRegistry) {
         mConfig = config;
         isLegacyConsumer = true;
+        this.metricRegistry = metricRegistry;
     }
 
     private void init() throws Exception {
@@ -92,13 +96,12 @@ public class Consumer extends Thread {
         }
         mKafkaMessageIterator = KafkaMessageIteratorFactory.getIterator(mConfig.getKafkaMessageIteratorClass(), mConfig);
         mMessageReader = new MessageReader(mConfig, mOffsetTracker, mKafkaMessageIterator);
-        mMetricCollector = ReflectionUtil.createMetricCollector(mConfig.getMetricsCollectorClass());
 
         FileRegistry fileRegistry = new FileRegistry(mConfig);
         UploadManager uploadManager = ReflectionUtil.createUploadManager(mConfig.getUploadManagerClass(), mConfig);
 
         mUploader = ReflectionUtil.createUploader(mConfig.getUploaderClass());
-        mUploader.init(mConfig, mOffsetTracker, fileRegistry, uploadManager, mMessageReader, mMetricCollector,
+        mUploader.init(mConfig, mOffsetTracker, fileRegistry, uploadManager, mMessageReader, metricRegistry,
                        mDeterministicUploadPolicyTracker);
 
         if (mKafkaMessageIterator instanceof RebalanceSubscriber) {
@@ -229,8 +232,7 @@ public class Consumer extends Thread {
                 final double DECAY = 0.999;
                 mUnparsableMessages *= DECAY;
             } catch (Throwable e) {
-                mMetricCollector.increment("consumer.message_errors.count", rawMessage.getTopic());
-
+                metricRegistry.counter(MetricRegistry.name(this.getClass(), rawMessage.getTopic(), "errorsCount")).inc();
                 mUnparsableMessages++;
                 final double MAX_UNPARSABLE_MESSAGES = 1000.;
                 if (mUnparsableMessages > MAX_UNPARSABLE_MESSAGES) {
@@ -240,11 +242,13 @@ public class Consumer extends Thread {
             }
 
             if (parsedMessage != null) {
+                Histogram writeBytes = metricRegistry.histogram(MetricRegistry.name(this.getClass(), rawMessage.getTopic(), "writeBytes"));
+                Counter counter = metricRegistry.counter(MetricRegistry.name(this.getClass(), rawMessage.getTopic(), "writeCount"));
+                Timer.Context context = metricRegistry.timer(MetricRegistry.name(this.getClass(), rawMessage.getTopic(), "writeTime")).time();
                 try {
                     mMessageWriter.write(parsedMessage);
-
-                    mMetricCollector.metric("consumer.message_size_bytes", rawMessage.getPayload().length, rawMessage.getTopic());
-                    mMetricCollector.increment("consumer.throughput_bytes", rawMessage.getPayload().length, rawMessage.getTopic());
+                    writeBytes.update(rawMessage.getPayload().length);
+                    counter.inc();
                 } catch (Exception e) {
                     // Log the full stringification of parsedMessage at DEBUG level, but include only a truncated
                     // version in the thrown exception, since messages can be ginormous and this exception often
@@ -253,6 +257,8 @@ public class Consumer extends Thread {
                         LOG.trace("Failed to write message " + parsedMessage, e);
                     }
                     throw new RuntimeException("Failed to write message " + parsedMessage.toTruncatedString(), e);
+                } finally {
+                    context.stop();
                 }
                 if (mDeterministicUploadPolicyTracker != null) {
                   mDeterministicUploadPolicyTracker.track(rawMessage);

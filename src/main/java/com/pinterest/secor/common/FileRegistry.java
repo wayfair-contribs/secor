@@ -21,7 +21,6 @@ package com.pinterest.secor.common;
 import com.pinterest.secor.io.FileWriter;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.ReflectionUtil;
-import com.pinterest.secor.util.StatsUtil;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,10 +159,6 @@ public class FileRegistry {
         paths.remove(path);
         if (paths.isEmpty()) {
             mFiles.remove(topicPartition);
-            StatsUtil.clearLabel("secor.size." + topicPartition.getTopic() + "." +
-                                 topicPartition.getPartitions()[0]);
-            StatsUtil.clearLabel("secor.modification_age_sec." + topicPartition.getTopic() + "." +
-                                 topicPartition.getPartitions()[0]);
         }
         deleteWriter(path);
         FileUtil.delete(path.getLogFilePath());
@@ -248,8 +243,6 @@ public class FileRegistry {
                 result += writer.getLength();
             }
         }
-        StatsUtil.setLabel("secor.size." + topicPartitionGroup.getTopic() + "." +
-            Arrays.toString(topicPartitionGroup.getPartitions()), Long.toString(result));
         return result;
     }
 
@@ -293,8 +286,6 @@ public class FileRegistry {
         if (result == Long.MAX_VALUE) {
             result = -1;
         }
-        StatsUtil.setLabel("secor.modification_age_sec." + topicPartitionGroup.getTopic() + "." +
-            Arrays.toString(topicPartitionGroup.getPartitions()), Long.toString(result));
         return result;
     }
 }

@@ -18,6 +18,7 @@
  */
 package com.pinterest.secor.uploader;
 
+import com.codahale.metrics.MetricRegistry;
 import com.pinterest.secor.common.FileRegistry;
 import com.pinterest.secor.common.LogFilePath;
 import com.pinterest.secor.common.OffsetTracker;
@@ -28,7 +29,6 @@ import com.pinterest.secor.common.ZookeeperConnector;
 import com.pinterest.secor.io.FileReader;
 import com.pinterest.secor.io.FileWriter;
 import com.pinterest.secor.io.KeyValue;
-import com.pinterest.secor.monitoring.MetricCollector;
 import com.pinterest.secor.reader.MessageReader;
 import com.pinterest.secor.util.FileUtil;
 import com.pinterest.secor.util.IdUtil;
@@ -63,7 +63,7 @@ public class UploaderTest extends TestCase {
                             MessageReader messageReader,
                             ZookeeperConnector zookeeperConnector) {
             init(config, offsetTracker, fileRegistry, uploadManager, messageReader, zookeeperConnector,
-                 Mockito.mock(MetricCollector.class), null);
+                 Mockito.mock(MetricRegistry.class), null);
             mReader = Mockito.mock(FileReader.class);
         }
 

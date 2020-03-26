@@ -23,7 +23,6 @@ import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.io.FileReader;
 import com.pinterest.secor.io.FileReaderWriterFactory;
 import com.pinterest.secor.io.FileWriter;
-import com.pinterest.secor.monitoring.MetricCollector;
 import com.pinterest.secor.parser.MessageParser;
 import com.pinterest.secor.transformer.MessageTransformer;
 import com.pinterest.secor.uploader.UploadManager;
@@ -199,33 +198,6 @@ public class ReflectionUtil {
                 .newInstance(config);
     }
 
-    /**
-     * Create an MetricCollector from its fully qualified class name.
-     * <p>
-     * The class passed in by name must be assignable to MetricCollector.
-     * See the secor.monitoring.metrics.collector.class config option.
-     *
-     * @param className The class name of a subclass of MetricCollector
-     * @return a MetricCollector with the runtime type of the class passed by name
-     * @throws ClassNotFoundException if class with the {@code className} is not found in classpath
-     * @throws IllegalAccessException if the class or its nullary
-     *                                constructor is not accessible.
-     * @throws InstantiationException if this {@code Class} represents an abstract class,
-     *                                an interface, an array class, a primitive type, or void;
-     *                                or if the class has no nullary constructor;
-     *                                or if the instantiation fails for some other reason.
-     */
-    public static MetricCollector createMetricCollector(String className)
-            throws ClassNotFoundException, IllegalAccessException, InstantiationException {
-        Class<?> clazz = Class.forName(className);
-        if (!MetricCollector.class.isAssignableFrom(clazz)) {
-            throw new IllegalArgumentException(String.format("The class '%s' is not assignable to '%s'.",
-                    className, MetricCollector.class.getName()));
-        }
-
-        return (MetricCollector) clazz.newInstance();
-    }
-    
     /**
      * Create a ORCSchemaProvider from it's fully qualified class name. The
      * class passed in by name must be assignable to ORCSchemaProvider and have

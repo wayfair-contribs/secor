@@ -1,7 +1,6 @@
 package com.pinterest.secor.rebalance;
 
 import com.pinterest.secor.common.ZookeeperConnector;
-import com.pinterest.secor.util.StatsUtil;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
@@ -44,7 +43,6 @@ public class SecorConsumerRebalanceListener implements ConsumerRebalanceListener
         LOG.info("re-balance starting, forcing uploading current assigned partitions {}", assignedPartitions);
 
         List<com.pinterest.secor.common.TopicPartition> tps = assignedPartitions.stream().map(p -> new com.pinterest.secor.common.TopicPartition(p.topic(), p.partition())).collect(Collectors.toList());
-        tps.stream().map(p -> p.getTopic()).collect(Collectors.toSet()).forEach(topic -> StatsUtil.incr("secor.consumer_rebalance_count." + topic));
         handler.uploadOnRevoke(tps);
     }
 

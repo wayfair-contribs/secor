@@ -22,9 +22,7 @@ import com.pinterest.secor.common.OffsetTracker;
 import com.pinterest.secor.common.SecorConfig;
 import com.pinterest.secor.common.TopicPartition;
 import com.pinterest.secor.message.Message;
-import com.pinterest.secor.util.IdUtil;
 import com.pinterest.secor.util.RateLimitUtil;
-import com.pinterest.secor.util.StatsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +52,6 @@ public class MessageReader {
         mConfig = config;
         mOffsetTracker = offsetTracker;
         mLastAccessTime = new HashMap<TopicPartition, Long>();
-        StatsUtil.setLabel("secor.kafka.consumer.id", IdUtil.getConsumerId());
         mTopicPartitionForgetSeconds = mConfig.getTopicPartitionForgetSeconds();
         mCheckMessagesPerSecond = mConfig.getMessagesPerSecond() / mConfig.getConsumerThreads();
         mKafkaMessageIterator = kafkaMessageIterator;
@@ -71,18 +68,6 @@ public class MessageReader {
                 iterator.remove();
             }
         }
-    }
-
-    private void exportStats() {
-        StringBuffer topicPartitions = new StringBuffer();
-        for (TopicPartition topicPartition : mLastAccessTime.keySet()) {
-            if (topicPartitions.length() > 0) {
-                topicPartitions.append(' ');
-            }
-            topicPartitions.append(topicPartition.getTopic() + '/' +
-                                   topicPartition.getPartition());
-        }
-        StatsUtil.setLabel("secor.topic_partitions", topicPartitions.toString());
     }
 
     public boolean hasNext() {
@@ -105,9 +90,6 @@ public class MessageReader {
         // Skip already committed messages.
         long committedOffsetCount = mOffsetTracker.getTrueCommittedOffsetCount(topicPartition);
         LOG.debug("read message {}", message);
-        if (mNMessages % mCheckMessagesPerSecond == 0) {
-            exportStats();
-        }
         if (message.getOffset() < committedOffsetCount) {
             LOG.debug("skipping message {} because its offset precedes committed offset count {}",
                     message, committedOffsetCount);
